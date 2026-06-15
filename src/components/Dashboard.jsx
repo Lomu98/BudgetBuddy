@@ -326,6 +326,31 @@ function Dashboard() {
   const monthlyInvestedSell = transactions.filter(t => t.type === 'income' && t.category === 'Investimenti').reduce((sum, t) => sum + t.amount, 0);
   const monthlyInvestedNet = monthlyInvestedBuy - monthlyInvestedSell;
 
+  const renderTransactionForm = (sticky = false) => (
+    <div className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 ${sticky ? 'sticky top-24' : ''}`}>
+      <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold">Nuova Transazione</h3><button type="button" onClick={() => setShowRecurringModal(true)} className={`p-2 rounded-lg ${isRecurring ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button></div>
+      <form onSubmit={handleAddTransaction} className="space-y-4">
+        <div className="flex bg-slate-100 p-1 rounded-xl"><button type="button" onClick={() => setType('expense')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}>USCITA</button><button type="button" onClick={() => setType('income')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>ENTRATA</button><button type="button" onClick={() => setType('transfer')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'transfer' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>GIROCONTO</button></div>
+        <input type="number" step="0.01" placeholder="0.00 €" required value={amount} onChange={e => setAmount(e.target.value)} className="w-full text-center text-3xl font-bold py-4 border-b-2 bg-transparent outline-none focus:border-indigo-500" />
+        <div className="relative"><input type="text" placeholder={type === 'transfer' ? 'Note opzionali' : 'Descrizione'} value={description} onChange={e => setDescription(e.target.value)} className="input-field pr-12" required={type !== 'transfer'} />{type !== 'transfer' && (<button type="button" onClick={handleAiSuggest} disabled={isAiLoading || !description} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${isAiLoading ? 'bg-indigo-100 text-indigo-400 animate-pulse' : 'text-indigo-500 hover:bg-indigo-50 hover:text-indigo-700'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>)}</div>
+        <div className="grid grid-cols-2 gap-3">{type !== 'transfer' && <input type="text" placeholder="Categoria" required value={category} onChange={e => setCategory(e.target.value)} className="input-field" list="category-list" />}<input type="date" required value={date} onChange={e => setDate(e.target.value)} className={`input-field ${type === 'transfer' ? 'col-span-2' : ''}`} /></div>
+        <div className="space-y-3">
+          {accounts.length > 0 ? (
+            <select value={accountId} onChange={e => setAccountId(e.target.value)} className="input-field appearance-none cursor-pointer" required>
+              <option value="" disabled>{type === 'transfer' ? 'DA Conto...' : 'Conto'}</option>
+              {accounts.filter(a => a.status !== 'closed').map(acc => (<option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.type === 'investment' ? (acc.cash || 0) : acc.balance)})</option>))}
+            </select>
+          ) : (
+            <div onClick={() => navigate('/profile')} className="p-3 border border-dashed border-rose-300 bg-rose-50 text-rose-600 rounded-xl text-center text-xs cursor-pointer font-bold">Nessun conto attivo. <br/>Clicca per crearne uno nel Profilo.</div>
+          )}
+          {type === 'transfer' && (<select value={toAccountId} onChange={e => setToAccountId(e.target.value)} className="input-field appearance-none cursor-pointer" required><option value="" disabled>A Conto...</option>{accounts.filter(a => a.id !== accountId && a.status !== 'closed').map(acc => (<option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.type === 'investment' ? (acc.cash || 0) : acc.balance)})</option>))}</select>)}
+        </div>
+        {isRecurring && (<div className="bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-lg border border-indigo-100 font-bold flex items-center justify-between animate-fadeIn"><div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>{formatRecurrenceLabel(recurrenceRule)}</div><button type="button" onClick={cancelRecurrence} className="text-indigo-400 hover:text-rose-500 transition rounded-full p-1 hover:bg-white/50"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
+        <button type="submit" disabled={accounts.length === 0} className="btn-primary mt-2 disabled:opacity-50 disabled:cursor-not-allowed">{type === 'transfer' ? 'Esegui Giroconto' : 'Aggiungi'}</button>
+      </form>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-10">
       <datalist id="category-list">{suggestedCategories.map((cat, index) => <option key={index} value={cat} />)}</datalist>
@@ -443,6 +468,11 @@ function Dashboard() {
             </div>
         </div>
 
+        {/* MOBILE ONLY: Form prima delle KPI */}
+        <div className="lg:hidden mb-8">
+          {renderTransactionForm(false)}
+        </div>
+
         {/* KPI MENSILI */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><p className="text-xs font-bold text-slate-400 uppercase">Entrate Mese</p><p className="text-2xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p></div>
@@ -455,32 +485,9 @@ function Dashboard() {
 
         {/* GRID FORM + LISTA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mt-8">
-            {/* COLONNA 1: FORM */}
-            <div className="lg:col-span-1">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 sticky top-24">
-                    <div className="flex justify-between items-center mb-6"><h3 className="text-lg font-bold">Nuova Transazione</h3><button type="button" onClick={() => setShowRecurringModal(true)} className={`p-2 rounded-lg ${isRecurring ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button></div>
-                    <form onSubmit={handleAddTransaction} className="space-y-4">
-                        <div className="flex bg-slate-100 p-1 rounded-xl"><button type="button" onClick={() => setType('expense')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}>USCITA</button><button type="button" onClick={() => setType('income')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>ENTRATA</button><button type="button" onClick={() => setType('transfer')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${type === 'transfer' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>GIROCONTO</button></div>
-                        <input type="number" step="0.01" placeholder="0.00 €" required value={amount} onChange={e => setAmount(e.target.value)} className="w-full text-center text-3xl font-bold py-4 border-b-2 bg-transparent outline-none focus:border-indigo-500" />
-                        <div className="relative"><input type="text" placeholder={type === 'transfer' ? 'Note opzionali' : 'Descrizione'} value={description} onChange={e => setDescription(e.target.value)} className="input-field pr-12" required={type !== 'transfer'} />{type !== 'transfer' && (<button type="button" onClick={handleAiSuggest} disabled={isAiLoading || !description} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all ${isAiLoading ? 'bg-indigo-100 text-indigo-400 animate-pulse' : 'text-indigo-500 hover:bg-indigo-50 hover:text-indigo-700'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>)}</div>
-                        <div className="grid grid-cols-2 gap-3">{type !== 'transfer' && <input type="text" placeholder="Categoria" required value={category} onChange={e => setCategory(e.target.value)} className="input-field" list="category-list" />}<input type="date" required value={date} onChange={e => setDate(e.target.value)} className={`input-field ${type === 'transfer' ? 'col-span-2' : ''}`} /></div>
-                        
-                        <div className="space-y-3">
-                            {accounts.length > 0 ? (
-                                <select value={accountId} onChange={e => setAccountId(e.target.value)} className="input-field appearance-none cursor-pointer" required>
-                                    <option value="" disabled>{type === 'transfer' ? 'DA Conto...' : 'Conto'}</option>
-                                    {accounts.filter(a => a.status !== 'closed').map(acc => (<option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.type === 'investment' ? (acc.cash || 0) : acc.balance)})</option>))}
-                                </select>
-                            ) : (
-                                <div onClick={() => navigate('/profile')} className="p-3 border border-dashed border-rose-300 bg-rose-50 text-rose-600 rounded-xl text-center text-xs cursor-pointer font-bold">Nessun conto attivo. <br/>Clicca per crearne uno nel Profilo.</div>
-                            )}
-                            {type === 'transfer' && (<select value={toAccountId} onChange={e => setToAccountId(e.target.value)} className="input-field appearance-none cursor-pointer" required><option value="" disabled>A Conto...</option>{accounts.filter(a => a.id !== accountId && a.status !== 'closed').map(acc => (<option key={acc.id} value={acc.id}>{acc.name} ({formatCurrency(acc.type === 'investment' ? (acc.cash || 0) : acc.balance)})</option>))}</select>)}
-                        </div>
-
-                        {isRecurring && (<div className="bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-lg border border-indigo-100 font-bold flex items-center justify-between animate-fadeIn"><div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>{formatRecurrenceLabel(recurrenceRule)}</div><button type="button" onClick={cancelRecurrence} className="text-indigo-400 hover:text-rose-500 transition rounded-full p-1 hover:bg-white/50"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>)}
-                        <button type="submit" disabled={accounts.length === 0} className="btn-primary mt-2 disabled:opacity-50 disabled:cursor-not-allowed">{type === 'transfer' ? 'Esegui Giroconto' : 'Aggiungi'}</button>
-                    </form>
-                </div>
+            {/* COLONNA 1: FORM — visibile solo su desktop */}
+            <div className="hidden lg:block lg:col-span-1">
+              {renderTransactionForm(true)}
             </div>
 
             {/* COLONNA 2: LISTA */}
