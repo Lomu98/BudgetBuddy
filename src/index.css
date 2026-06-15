@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #F8FAFC; /* Slate-50 */
+    color: #1E293B; /* Slate-800 */
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* Stile Card Unificato */
+  .card-modern {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100 p-6;
+  }
+  
+  /* Input Standard */
+  .input-field {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-sm font-medium text-slate-700 placeholder-slate-400;
+  }
+
+  /* Input Select Standard */
+  .select-field {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-sm font-medium text-slate-700 appearance-none cursor-pointer;
+  }
+
+  /* Bottone Primario (Indigo) */
+  .btn-primary {
+    @apply w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-md shadow-indigo-100 transition-all transform active:scale-95 flex justify-center items-center;
+  }
+
+  /* Bottone Secondario (Ghost/Outline) */
+  .btn-secondary {
+    @apply px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-medium transition-colors;
+  }
+  
+  /* Badge Categorie */
+  .badge {
+    @apply px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+  }
+}
