@@ -3,6 +3,10 @@
 .env.local
 .env.*.local
 
+# Secrets & dati sensibili
+serviceAccount.json
+*.pdf
+
 # Logs
 logs
 *.log
