@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, increment } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { rrulestr } from 'rrule';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -51,6 +51,29 @@ export const useRecurringTransactions = (userId, currentDate) => {
             const q = query(collection(db, 'transactions'), where('userId', '==', userId));
             const snapshot = await getDocs(q);
             const fetchedData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Materializza le transazioni pianificate con data scaduta
+            const today = format(new Date(), 'yyyy-MM-dd');
+            const toMaterialize = fetchedData.filter(t => t.status === 'scheduled' && t.date <= today);
+            if (toMaterialize.length > 0) {
+                const accountDeltas = {};
+                toMaterialize.forEach(t => {
+                    const delta = (t.type === 'expense' || t.type === 'transfer') ? -t.amount : t.amount;
+                    accountDeltas[t.accountId] = (accountDeltas[t.accountId] || 0) + delta;
+                    if (t.type === 'transfer' && t.toAccountId) {
+                        accountDeltas[t.toAccountId] = (accountDeltas[t.toAccountId] || 0) + t.amount;
+                    }
+                });
+                const batch = writeBatch(db);
+                toMaterialize.forEach(t => {
+                    batch.update(doc(db, 'transactions', t.id), { status: 'completed' });
+                });
+                Object.entries(accountDeltas).forEach(([accId, delta]) => {
+                    batch.update(doc(db, 'accounts', accId), { balance: increment(delta), cash: increment(delta) });
+                });
+                await batch.commit();
+                toMaterialize.forEach(t => { t.status = 'completed'; });
+            }
 
             const excQ = query(collection(db, 'exceptions'), where('userId', '==', userId));
             const excSnapshot = await getDocs(excQ);
